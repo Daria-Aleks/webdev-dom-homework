@@ -102,7 +102,7 @@
           <div class="comment-footer">
             <div class="likes">
               ${comment.likes}
-              <button onclick="getLike(${index})" class="${comment.isLiked ? 'like-button -active-like' : 'like-button'}"></button>
+              <button onclick="getLike(${index}); event.stopPropagation()" class="${comment.isLiked ? 'like-button -active-like' : 'like-button'}"></button>
             </div>
           </div>
         </li>`;
