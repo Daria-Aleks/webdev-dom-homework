@@ -5,59 +5,27 @@
     <meta charset="utf-8" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-
   <body>
     <div class="container">
-      <ul class="comments">
-        <li class="comment">
-          <div class="comment-header">
-            <div>Глеб Фокин</div>
-            <div>12.02.22 12:18</div>
-          </div>
-          <div class="comment-body">
-            <div class="comment-text">
-              Это будет первый комментарий на этой странице
-            </div>
-          </div>
-          <div class="comment-footer">
-            <div class="likes">
-              <span class="likes-counter">3</span>
-              <button class="like-button"></button>
-            </div>
-          </div>
-        </li>
-        <li class="comment">
-          <div class="comment-header">
-            <div>Варвара Н.</div>
-            <div>13.02.22 19:22</div>
-          </div>
-          <div class="comment-body">
-            <div class="comment-text">
-              Мне нравится как оформлена эта страница! ❤
-            </div>
-          </div>
-          <div class="comment-footer">
-            <div class="likes">
-              <span class="likes-counter">75</span>
-              <button class="like-button -active-like"></button>
-            </div>
-          </div>
-        </li>
+      <ul id="list" class="comments">
+
       </ul>
-      <div class="add-form">
+      <div class="add-form" id="add-form">
         <input
+          id="name-input"
           type="text"
           class="add-form-name"
           placeholder="Введите ваше имя"
         />
         <textarea
+          id="comment-input"
           type="textarea"
           class="add-form-text"
-          placeholder="Введите ваш коментарий"
+          placeholder="Введите ваш комментарий"
           rows="4"
         ></textarea>
         <div class="add-form-row">
-          <button class="add-form-button">Написать</button>
+          <button id="add-button" class="add-form-button">Написать</button>
         </div>
       </div>
     </div>
@@ -65,7 +33,139 @@
 
   <script>
     "use strict";
-    // Код писать здесь
+    const buttonElement = document.getElementById("add-button");
+    const addForm = document.getElementById("add-form");
+    const listElement = document.getElementById("list");
+    const nameInputElement = document.getElementById("name-input");
+    const commentInputElement = document.getElementById("comment-input");
+    nameInputElement.style="comment-header";
+    function checkInput() {
+      if (!nameInputElement.value || !commentInputElement.value) {
+        buttonElement.disabled = true;
+      } else {
+        buttonElement.disabled = false;
+      }
+    }
+    nameInputElement.addEventListener("input", checkInput)
+    commentInputElement.addEventListener("input", checkInput)
+
+    let comments = []
+
+    function fetchPromise() {
+      return fetch("https://wedev-api.sky.pro/api/v1/daria-alekseeva/comments", {
+      method: "GET"
+      })
+      .then((responce) => {
+        return responce.json()
+      })
+      .then((responceData) => {
+        const comms = responceData.comments.map((comment) => {
+            return {
+              name: comment.author.name,
+              date: new Date(comment.date).toLocaleString(),
+              comment: comment.text,
+              likes: comment.likes,
+              isLiked: false,
+            }
+          })
+          comments = comms;
+          addForm.style.display = "flex"
+          renderComments();
+      })
+
+      function getLike(index) {
+        if (!comments[index].isLiked) {
+          comments[index].likes++
+        } else {
+          comments[index].likes--
+        }
+        comments[index].isLiked = !comments[index].isLiked;
+        renderComments();
+      }
+
+    }
+    const pageLoaded = () => {
+      const loadInfo = "<span>Пожалуйста, подождите, загружаю комментарии...</span>"
+      listElement.innerHTML = loadInfo
+    } 
+
+    const commentSend = () => {
+      const loadInfo = "<span>Комментарий добавляется...</span>"
+      listElement.innerHTML += loadInfo;
+      addForm.style.display = "none"
+    } 
+
+    pageLoaded()
+    fetchPromise()
+
+    function getLike(index) {
+      if (!comments[index].isLiked) {
+        comments[index].likes++
+      } else {
+        comments[index].likes--
+      }
+      comments[index].isLiked = !comments[index].isLiked;
+      renderComments();
+    }
+
+    function answerComment(index) {
+      commentInputElement.value = `> ${comments[index].comment} \n ${comments[index].name},`;
+    } 
+
+    const renderComments = () => {
+      const commentsHtml = comments.map((comment, index)=> {
+        return `<li class="comment" onclick="answerComment(${index})">
+          <div class="comment-header">
+            <div>${comment.name}</div>
+            <div>${comment.date}</div>
+          </div>
+          <div class="comment-body">
+            <div class="comment-text">
+              ${comment.comment}
+            </div>
+          </div>
+          <div class="comment-footer">
+            <div class="likes">
+              ${comment.likes}
+              <button onclick="getLike(${index}); event.stopPropagation()" class="${comment.isLiked ? 'like-button -active-like' : 'like-button'}"></button>
+            </div>
+          </div>
+        </li>`;
+      }).join('');
+      listElement.innerHTML = commentsHtml;
+    }
+
+    const sanitizeHtml = (htmlString) => {
+      return htmlString
+              .replaceAll("&", "&amp;")
+              .replaceAll("<", "&lt;")
+              .replaceAll(">", "&gt;")
+              .replaceAll('"', "&quot;");
+    };
+
+    buttonElement.addEventListener("click", () => {
+      if (!nameInputElement.value || !commentInputElement.value) {
+        return;
+      } 
+      
+      const currentDate = new Date();
+      const oldListHtml = listElement.innerHTML;
+      commentSend();
+      const fetchPromisePost = fetch("https://wedev-api.sky.pro/api/v1/daria-alekseeva/comments", {
+      method: "POST",
+      body: JSON.stringify({
+        "text": sanitizeHtml(commentInputElement.value),
+        "name": sanitizeHtml(nameInputElement.value)
+        })
+      })
+      .then(() => {
+        fetchPromise();
+        nameInputElement.value = '';
+        commentInputElement.value = '';
+      })
+    });
+
     console.log("It works!");
   </script>
 </html>
+
